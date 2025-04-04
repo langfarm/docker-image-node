@@ -3,9 +3,11 @@ FROM --platform=${TARGETPLATFORM:-linux/amd64} langfarm/alinux3:3.9
 ARG NODE_VERSION
 ENV NODE_VERSION=${NODE_VERSION:-20.19.0}
 
-RUN curl -o- https://fnm.vercel.app/install | bash -s -- --install-dir "/usr/local/share/fnm" --skip-shell
+RUN curl -o- https://fnm.vercel.app/install | bash -s -- --install-dir "/usr/local/bin" --skip-shell
 
-RUN fnm install ${NODE_VERSION} \
+ENV FNM_DIR=/usr/local/share/fnm
+
+RUN fnm install --fnm-dir /usr/local/share/fnm ${NODE_VERSION} \
     && ln -s /usr/local/bin/node /usr/local/share/fnm/node-versions/v${NODE_VERSION}/installation/bin/node \
     && ln -s /usr/local/bin/npm /usr/local/share/fnm/node-versions/v${NODE_VERSION}/installation/bin/npm \
     && ln -s /usr/local/bin/npx /usr/local/share/fnm/node-versions/v${NODE_VERSION}/installation/bin/npx \
