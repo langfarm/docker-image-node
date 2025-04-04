@@ -1,0 +1,63 @@
+name: Dry Run Docker Image CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        required: true
+        type: string
+        description: 'Tags to apply to the image, such as "latest" or "1.0.0, Semantic Version'
+
+env:
+  GHCR_REGISTRY: ghcr.io
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: langfarm/node
+
+jobs:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: langfarm
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.tags }}
+            type=semver,pattern={{version}}-alinux3,value=${{ inputs.tags }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tags }}
+            type=semver,pattern={{major}}.{{minor}}-alinux3,value=${{ inputs.tags }}
+            type=semver,pattern={{major}},value=${{ inputs.tags }}
+            type=semver,pattern={{major}}-alinux3,value=${{ inputs.tags }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: |
+            linux/amd64
+          push: false
+          tags: ${{ inputs.tags }}
